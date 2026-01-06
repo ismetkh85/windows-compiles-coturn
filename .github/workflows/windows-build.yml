@@ -58,7 +58,7 @@ jobs:
         shell: powershell
         run: |
           cd coturn\build\x64\Release
-          $archiveName = "$(GitHub.RunNumber)-coturn-win-x64.zip"
+          $archiveName = "$($env:GITHUB_RUN_NUMBER)-coturn-win-x64.zip"
           Compress-Archive -Path *.exe, *.dll -DestinationPath "..\..\$archiveName"
           Write-Host "Archive created: $archiveName"
 
@@ -67,4 +67,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: coturn-win-x64
-          path: coturn\$archiveName
+          path: coturn\$($env:GITHUB_RUN_NUMBER)-coturn-win-x64.zip
