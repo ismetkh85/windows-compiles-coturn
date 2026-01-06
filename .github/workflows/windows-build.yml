@@ -24,15 +24,19 @@ jobs:
           git clone https://github.com/microsoft/vcpkg.git vcpkg
           cd vcpkg
           .\bootstrap-vcpkg.bat
-          .\vcpkg install openssl:x64-windows libevent:x64-windows pthreads4w:x64-windows
+          .\vcpkg install openssl:x64-windows libevent:x64-windows
 
-      # 3. Configure Coturn build with CMake
+      # 3. Configure Coturn build with CMake (Visual Studio generator, x64)
       - name: Configure Coturn with CMake
         shell: powershell
         run: |
           md coturn\build
           cd coturn\build
-          cmake .. -DCMAKE_TOOLCHAIN_FILE=..\vcpkg\scripts\buildsystems\vcpkg.cmake -DCMAKE_BUILD_TYPE=Release
+          cmake .. `
+            -G "Visual Studio 17 2022" `
+            -A x64 `
+            -DCMAKE_TOOLCHAIN_FILE=..\vcpkg\scripts\buildsystems\vcpkg.cmake `
+            -DVCPKG_TARGET_TRIPLET=x64-windows
 
       # 4. Build Coturn using MSBuild (via vswhere)
       - name: Build Coturn
