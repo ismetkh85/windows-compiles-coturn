@@ -152,9 +152,6 @@ This repository includes a GitHub Actions workflow that automatically builds cot
 - Coturn repository: https://github.com/coturn/coturn
 - vcpkg: https://github.com/microsoft/vcpkg
 - CMake: https://cmake.org/
-- Related article:
-  https://xue-fei.blog.csdn.net/article/details/155945401
-
 ---
 
 ## License
