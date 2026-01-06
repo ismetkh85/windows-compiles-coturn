@@ -24,7 +24,7 @@ jobs:
           git clone https://github.com/microsoft/vcpkg.git vcpkg
           cd vcpkg
           .\bootstrap-vcpkg.bat
-          .\vcpkg install openssl:x64-windows libevent:x64-windows
+          .\vcpkg install openssl:x64-windows libevent:x64-windows pthreads4w:x64-windows
 
       # 3. Configure Coturn build with CMake
       - name: Configure Coturn with CMake
