@@ -1,0 +1,59 @@
+name: Windows compiles coturn
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  build:
+    name: Build coturn on Windows (MSVC + vcpkg)
+    runs-on: windows-latest
+
+    steps:
+      # 1. Checkout workflow repository (README + workflow)
+      - name: Checkout workflow repo
+        uses: actions/checkout@v4
+
+      # 2. Clone coturn source (from your fork or original)
+      - name: Clone coturn source
+        run: |
+          git clone https://github.com/coturn/coturn.git coturn
+        shell: powershell
+
+      # 3. Install vcpkg and dependencies
+      - name: Install vcpkg and dependencies
+        shell: powershell
+        run: |
+          git clone https://github.com/microsoft/vcpkg.git vcpkg
+          cd vcpkg
+          .\bootstrap-vcpkg.bat
+          .\vcpkg install openssl:x64-windows libevent:x64-windows
+
+      # 4. Configure CMake (Visual Studio 2022 + vcpkg)
+      - name: Configure CMake
+        shell: powershell
+        run: |
+          cd coturn
+          mkdir build
+          cd build
+          cmake .. `
+            -G "Visual Studio 17 2022" `
+            -A x64 `
+            -DCMAKE_TOOLCHAIN_FILE="${{ github.workspace }}\vcpkg\scripts\buildsystems\vcpkg.cmake" `
+            -DVCPKG_TARGET_TRIPLET=x64-windows `
+            -DCMAKE_BUILD_TYPE=Release
+
+      # 5. Build coturn (Release)
+      - name: Build coturn
+        shell: powershell
+        run: |
+          cd coturn\build
+          msbuild ALL_BUILD.vcxproj /p:Configuration=Release /m
+
+      # 6. Upload ALL build outputs (exe, dll, pdb)
+      - name: Upload Windows build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: coturn-windows-release
+          path: coturn\build\Release\
