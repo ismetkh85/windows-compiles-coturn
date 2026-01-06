@@ -1,59 +1,66 @@
-name: Windows compiles coturn
+name: Build Coturn Windows
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
   pull_request:
 
 jobs:
-  build:
-    name: Build coturn on Windows (MSVC + vcpkg)
+  build-windows:
     runs-on: windows-latest
 
     steps:
-      # 1. Checkout workflow repository (README + workflow)
-      - name: Checkout workflow repo
-        uses: actions/checkout@v4
-
-      # 2. Clone coturn source (from your fork or original)
-      - name: Clone coturn source
+      # 1. Clone Coturn repository
+      - name: Clone Coturn repository
+        shell: powershell
         run: |
           git clone https://github.com/coturn/coturn.git coturn
-        shell: powershell
 
-      # 3. Install vcpkg and dependencies
+      # 2. Install vcpkg and dependencies
       - name: Install vcpkg and dependencies
         shell: powershell
         run: |
           git clone https://github.com/microsoft/vcpkg.git vcpkg
           cd vcpkg
           .\bootstrap-vcpkg.bat
-          .\vcpkg install openssl:x64-windows libevent:x64-windows
+          .\vcpkg install openssl:x64-windows libevent:x64-windows sqlite3:x64-windows libpq:x64-windows hiredis:x64-windows mongo-c-driver:x64-windows utf8proc:x64-windows lz4:x64-windows pthreads:x64-windows pkgconf:x64-windows vcpkg-cmake:x64-windows
 
-      # 4. Configure CMake (Visual Studio 2022 + vcpkg)
-      - name: Configure CMake
+      # 3. Configure Coturn build with CMake
+      - name: Configure Coturn with CMake
         shell: powershell
         run: |
-          cd coturn
-          mkdir build
-          cd build
-          cmake .. `
-            -G "Visual Studio 17 2022" `
-            -A x64 `
-            -DCMAKE_TOOLCHAIN_FILE="${{ github.workspace }}\vcpkg\scripts\buildsystems\vcpkg.cmake" `
-            -DVCPKG_TARGET_TRIPLET=x64-windows `
-            -DCMAKE_BUILD_TYPE=Release
-
-      # 5. Build coturn (Release)
-      - name: Build coturn
-        shell: powershell
-        run: |
+          md coturn\build
           cd coturn\build
-          msbuild ALL_BUILD.vcxproj /p:Configuration=Release /m
+          cmake .. -DCMAKE_TOOLCHAIN_FILE=..\vcpkg\scripts\buildsystems\vcpkg.cmake -DCMAKE_BUILD_TYPE=Release
 
-      # 6. Upload ALL build outputs (exe, dll, pdb)
-      - name: Upload Windows build artifacts
-        uses: actions/upload-artifact@v4
+      # 4. Build Coturn using MSBuild (via vswhere)
+      - name: Build Coturn
+        shell: powershell
+        run: |
+          $vsPath = & "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -requires Microsoft.Component.MSBuild -property installationPath
+          $msbuild = Join-Path $vsPath "MSBuild\Current\Bin\MSBuild.exe"
+
+          if (!(Test-Path $msbuild)) {
+              Write-Error "MSBuild not found!"
+              exit 1
+          }
+
+          cd coturn\build
+          & $msbuild ALL_BUILD.vcxproj /p:Configuration=Release /m
+
+      # 5. Archive the build outputs
+      - name: Archive Coturn build
+        shell: powershell
+        run: |
+          cd coturn\build\Release
+          $archiveName = "$(GitHub.RunNumber)-coturn-win-x64.zip"
+          Compress-Archive -Path *.exe, *.dll -DestinationPath "..\..\$archiveName"
+          Write-Host "Archive created: $archiveName"
+
+      # 6. Upload the artifact
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
         with:
-          name: coturn-windows-release
-          path: coturn\build\Release\
+          name: coturn-win-x64
+          path: coturn\$archiveName
