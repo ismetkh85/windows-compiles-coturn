@@ -67,4 +67,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: coturn-win-x64
-          path: coturn\coturn-win-x64.zip
+          path: coturn\build\coturn-win-x64.zip
